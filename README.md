@@ -57,9 +57,10 @@ flowchart TD
 |---|---|---|
 | Java | 21 | Linguagem principal |
 | Spring Boot | 3.2.2 | Injeção de dependência e contexto |
-| Spring Data JPA | — | Persistência ORM |
-| PostgreSQL | — | Banco de dados relacional |
+| Spring Data JPA | 3.2.2 | Persistência ORM |
+| PostgreSQL (Driver) | 42.7.5 | Driver JDBC para banco de dados relacional |
 | Lombok | 1.18.36 | Redução de boilerplate |
+| Maven | 3.8+ | Gerenciamento de dependências e build |
 
 > **Por que Spring Boot em uma CLI?**  
 > O Spring gerencia injeção de dependência e a camada de persistência (JPA/Hibernate), eliminando configuração manual. A interface de entrada é o terminal, mas toda a lógica de banco é gerenciada pelo framework.
@@ -70,6 +71,7 @@ flowchart TD
 
 ### Pré-requisitos
 - Java 21
+- Apache Maven 3.8+
 - PostgreSQL rodando localmente
 - Banco `reserva_sala` criado
 
@@ -79,7 +81,15 @@ CREATE DATABASE reserva_sala;
 
 ### Configuração
 
-Crie um arquivo `.env` ou defina as variáveis de ambiente:
+As seguintes variáveis de ambiente são suportadas com valores padrão configurados em `src/main/resources/application.properties`:
+
+| Variável | Descrição | Valor padrão |
+|---|---|---|
+| `DB_URL` | URL de conexão JDBC com o banco PostgreSQL | `jdbc:postgresql://localhost:5432/reserva_sala` |
+| `DB_USERNAME` | Usuário de autenticação no PostgreSQL | `postgres` |
+| `DB_PASSWORD` | Senha de autenticação no PostgreSQL | `changeme` |
+
+Você pode definir as variáveis no terminal:
 
 ```bash
 export DB_URL=jdbc:postgresql://localhost:5432/reserva_sala
@@ -87,14 +97,21 @@ export DB_USERNAME=postgres
 export DB_PASSWORD=sua_senha
 ```
 
-Ou edite diretamente o `application.properties` para desenvolvimento local.
+Ou editar diretamente o arquivo `src/main/resources/application.properties` para desenvolvimento local.
 
 ### Executar
 
 ```bash
-git clone https://github.com/odavid062/atvRafael2.git
-cd atvRafael2
-./mvnw spring-boot:run
+git clone https://github.com/odavid062/reserva-salas-cli.git
+cd reserva-salas-cli
+mvn spring-boot:run
+```
+
+Ou empacotando e executando via arquivo JAR:
+
+```bash
+mvn clean package
+java -jar target/atvdRafael-1.0-SNAPSHOT.jar
 ```
 
 O menu interativo será exibido no terminal:
@@ -113,16 +130,22 @@ Escolha uma opção:
 ## Estrutura do Projeto
 
 ```
-src/main/java/org/example/
-├── Main.java                          # Ponto de entrada + menu CLI (Scanner)
-├── Model/
-│   ├── Room.java                      # Entidade sala (nome único)
-│   └── Reservation.java               # Entidade reserva (sala + usuário)
-├── Repository/
-│   ├── RoomRepository.java            # findByName, existsByName
-│   └── ReservationRepository.java     # findByRoomNameAndUser
-└── Service/
-    └── BookingService.java            # Regras: reservar, cancelar, listar, criar sala
+reserva-salas-cli/
+├── pom.xml                                    # Gerenciamento de dependências e plugins Maven
+└── src/
+    └── main/
+        ├── java/org/example/
+        │   ├── Main.java                      # Ponto de entrada + menu CLI (Scanner)
+        │   ├── Model/
+        │   │   ├── Room.java                  # Entidade sala (nome único)
+        │   │   └── Reservation.java           # Entidade reserva (sala + usuário)
+        │   ├── Repository/
+        │   │   ├── RoomRepository.java        # findByName, existsByName
+        │   │   └── ReservationRepository.java # findByRoomNameAndUser
+        │   └── Service/
+        │       └── BookingService.java        # Regras: reservar, cancelar, listar, criar sala
+        └── resources/
+            └── application.properties         # Configuração de conexão PostgreSQL e Hibernate
 ```
 
 ---
@@ -132,6 +155,7 @@ src/main/java/org/example/
 - `@Column(name = "username")` na entidade `Reservation` — evita conflito com a palavra reservada `user` no PostgreSQL
 - Validação de unicidade da sala feita antes de persistir (`existsByName`)
 - Constructor injection no `BookingService` (sem `@Autowired` em campo)
+- `spring.jpa.hibernate.ddl-auto=update` — cria e atualiza automaticamente o schema das tabelas no banco de dados na inicialização
 
 ---
 
